@@ -1,186 +1,108 @@
 <template>
-  <div>
-    <a-row :gutter="12">
-      <a-col :lg="10" :md="24" class="pb-3">
+  <page-view>
+    <a-row :gutter="15">
+      <a-col :span="24">
         <a-card :bodyStyle="{ padding: '16px' }" :bordered="false">
-          点击可修改背景图片
-          <div class="mb-6 text-center">
-            <a-tooltip :trigger="['hover']" placement="right" title="点击可修改背景图片">
-              <a-avatar
-                :size="104"
-                :src="userForm.model.avatar || '//cn.gravatar.com/avatar/?s=256&d=mm'"
-                class="cursor-pointer"
-                @click="handleOpenUpdateAvatarForm"
-              />
-            </a-tooltip>
-            <div class="mt-4 mb-1 text-xl font-medium leading-5" style="color: rgba(0, 0, 0, 0.85)">
-              {{ userForm.model.nickname }}
+          <a-form-model-item label="首页视频上传" prop="field110">
+            <div class="clearfix">
+              <a-upload :file-list="fileList" :remove="handleRemove" :before-upload="beforeUpload">
+                <a-button>
+                  <a-icon type="upload" />
+                  Select File
+                </a-button>
+              </a-upload>
+              <a-button
+                type="primary"
+                :disabled="fileList.length === 0"
+                :loading="uploading"
+                style="margin-top: 16px"
+                @click="handleUpload"
+              >
+                {{ uploading ? 'Uploading' : 'Start Upload' }}
+              </a-button>
             </div>
-            <div>{{ userForm.model.description }}</div>
-          </div>
-          <div>
-            <p class="mb-3">
-              <a-icon class="mr-3" type="link" />
-              <a :href="options.blog_url" target="method">{{ options.blog_url }}</a>
-            </p>
-            <p class="mb-3">
-              <a-icon class="mr-3" type="mail" />
-              {{ userForm.model.email }}
-            </p>
-            <p class="mb-3">
-              <a-icon class="mr-3" type="calendar" />
-              {{ statistics.data.establishDays || 0 }} 天
-            </p>
-          </div>
-          <a-divider />
+          </a-form-model-item>
         </a-card>
       </a-col>
     </a-row>
-
-    <a-modal v-model="updateAvatarForm.visible" title="修改头像">
-      <a-form layout="vertical">
-        <a-form-item label="头像链接：">
-          <AttachmentInput ref="avatarInput" v-model="updateAvatarForm.avatar" />
-        </a-form-item>
-      </a-form>
-
-      <template #footer>
-        <a-button type="primary" @click="handleUpdateAvatar">确定</a-button>
-        <a-button @click="updateAvatarForm.visible = false">关闭</a-button>
-      </template>
-    </a-modal>
-  </div>
+  </page-view>
 </template>
-
 <script>
-import apiClient from '@/utils/api-client'
-import { mapGetters, mapMutations } from 'vuex'
+import { PageView } from '@/layouts'
 
 export default {
+  components: {
+    PageView
+  },
+  props: [],
   data() {
     return {
-      attachmentSelect: {
-        visible: false
+      formData: {
+        field110: null
       },
-      updateAvatarForm: {
-        avatar: undefined,
-        visible: false,
-        saving: false,
-        saveErrored: false
-      },
-      userForm: {
-        model: {},
-        saving: false,
-        errored: false
-      },
-      statistics: {
-        data: {},
-        loading: false
-      },
-      passwordForm: {
-        model: {
-          oldPassword: null,
-          newPassword: null,
-          confirmPassword: null
-        },
-        saving: false,
-        errored: false
-      }
+      rules: {},
+      field110Action: 'https://jsonplaceholder.typicode.com/posts/',
+      field110fileList: [],
+      fileList: [],
+      uploading: false
     }
   },
-  computed: {
-    ...mapGetters(['options']),
-    mfaType() {
-      return this.mfaParam.mfaType
-    },
-    mfaUsed() {
-      return this.mfaParam.mfaUsed
-    }
-  },
-  created() {
-    this.handleLoadStatistics()
-  },
+  computed: {},
+  watch: {},
+  created() {},
+  mounted() {},
   methods: {
-    ...mapMutations({ setUser: 'SET_USER' }),
+    handleRemove(file) {
+      const index = this.fileList.indexOf(file)
+      const newFileList = this.fileList.slice()
+      newFileList.splice(index, 1)
+      this.fileList = newFileList
+    },
+    beforeUpload(file) {
+      this.fileList = [...this.fileList, file]
+      return false
+    },
+    handleUpload() {
+      const { fileList } = this
+      const formData = new FormData()
+      fileList.forEach(file => {
+        formData.append('files[]', file)
+      })
+      this.uploading = true
 
-    handleLoadStatistics() {
-      this.statistics.loading = true
-      apiClient.statistic
-        .statisticsWithUser()
-        .then(response => {
-          this.userForm.model = response.data.user
-          this.statistics.data = response.data
-          this.mfaParam.mfaType = this.userForm.model.mfaType && this.userForm.model.mfaType
-        })
-        .finally(() => {
-          this.statistics.loading = false
-        })
-    },
-    handleUpdatePassword() {
-      const _this = this
-      _this.$refs.passwordForm.validate(valid => {
-        if (valid) {
-          this.passwordForm.saving = true
-          apiClient.user
-            .updatePassword(this.passwordForm.model)
-            .catch(() => {
-              this.passwordForm.errored = true
-            })
-            .finally(() => {
-              setTimeout(() => {
-                this.passwordForm.saving = false
-              }, 400)
-            })
-        }
-      })
-    },
-    handleUpdatedPasswordCallback() {
-      if (this.passwordForm.errored) {
-        this.passwordForm.errored = false
-      } else {
-        this.passwordForm.model.oldPassword = null
-        this.passwordForm.model.newPassword = null
-        this.passwordForm.model.confirmPassword = null
-      }
-    },
-    handleUpdateProfile() {
-      const _this = this
-      _this.$refs.userForm.validate(valid => {
-        if (valid) {
-          this.userForm.saving = true
-          apiClient.user
-            .updateProfile(this.userForm.model)
-            .then(response => {
-              this.userForm.model = response.data
-              this.setUser(Object.assign({}, this.userForm.model))
-            })
-            .catch(() => {
-              this.userForm.errored = true
-            })
-            .finally(() => {
-              setTimeout(() => {
-                this.userForm.saving = false
-              }, 400)
-            })
-        }
-      })
-    },
-    handleUpdatedProfileCallback() {
-      if (this.userForm.errored) {
-        this.userForm.errored = false
-      }
-    },
-    handleOpenUpdateAvatarForm() {
-      this.updateAvatarForm.avatar = this.userForm.model.avatar
-      this.updateAvatarForm.visible = true
-      this.$nextTick(() => {
-        this.$refs.avatarInput.focus()
-      })
-    },
-    handleUpdateAvatar() {
-      this.userForm.model.avatar = this.updateAvatarForm.avatar
-      this.updateAvatarForm.visible = false
+      // You can use any AJAX library you like
+      // reqwest({
+      //   url: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
+      //   method: 'post',
+      //   processData: false,
+      //   data: formData,
+      //   success: () => {
+      //     this.fileList = []
+      //     this.uploading = false
+      //     this.$message.success('upload successfully.')
+      //   },
+      //   error: () => {
+      //     this.uploading = false
+      //     this.$message.error('upload failed.')
+      //   }
+      // })
     }
   }
 }
 </script>
+<style>
+.avatar-uploader > .ant-upload {
+  width: 128px;
+  height: 128px;
+}
+
+.ant-upload-select-picture-card i {
+  font-size: 32px;
+  color: #999;
+}
+
+.ant-upload-select-picture-card .ant-upload-text {
+  margin-top: 8px;
+  color: #666;
+}
+</style>

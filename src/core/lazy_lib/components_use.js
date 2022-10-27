@@ -53,7 +53,8 @@ import {
   Tooltip,
   Tree,
   TreeSelect,
-  Descriptions
+  Descriptions,
+  Upload
 } from 'ant-design-vue'
 
 Vue.use(Affix)
@@ -108,6 +109,7 @@ Vue.use(Empty)
 Vue.use(Result)
 Vue.use(Space)
 Vue.use(Descriptions)
+Vue.use(Upload)
 
 // message config
 message.config({

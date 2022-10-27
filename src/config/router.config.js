@@ -135,6 +135,12 @@ export const asyncRouterMap = [
         meta: { title: '外观', icon: 'skin' },
         children: [
           {
+            path: '/interface/themes/ThemeIndexBg',
+            name: 'ThemeIndexBg',
+            component: () => import('@/views/interface/ThemeIndexBg'),
+            meta: { title: '主题首页设计(定制)', hiddenHeaderContent: false }
+          },
+          {
             path: '/interface/themes',
             name: 'ThemeList',
             component: () => import('@/views/interface/ThemeList'),
